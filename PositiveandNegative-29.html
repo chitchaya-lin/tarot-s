@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tarot</title>
+  <style>
+    :root {
+      --ui-gap: 12px;
+    }
+
+    body { font-family: Arial, sans-serif; }
+    .question-box {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 15px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: center;
+      gap: var(--ui-gap);
+      margin-top: var(--ui-gap);
+    }
+
+    .section {
+      margin-top: var(--ui-gap);
+    }
+
+    .full-deck {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: var(--ui-gap);
+      margin-top: var(--ui-gap);
+    }
+
+    .full-deck img,
+    .full-deck .card-back {
+      width: 100%;
+      height: auto;
+      max-width: 100px;
+      justify-self: center;
+    }
+
+    /* Revealed cards: enlarged, no gaps */
+    .selected-cards {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      gap: 0;
+      margin-top: var(--ui-gap);
+      justify-content: center;
+    }
+
+    .selected-cards img {
+      display: block;
+      width: 4in;
+      height: 6in;
+      margin: 0;
+      padding: 0;
+      border-radius: 8px;
+    }
+
+    /* Negative revealed cards */
+    .neg-card {
+      border: 4px solid #99ccee; /* matches negative button border */
+    }
+
+    /* Positive revealed cards */
+    .pos-card {
+      border: 4px solid #e6aabb; /* matches positive button border */
+    }
+
+    button.shuttle.negative {
+      background-color: #e0f7ff;
+      border: 1px solid #99ccee;
+      color: #003344;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    button.shuttle.positive {
+      background-color: #ffe6f0;
+      border: 1px solid #e6aabb;
+      color: #660033;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    /* Clear Revealed Cards button → pale green */
+    .reset-btn {
+      background-color: #e6ffe6; /* pale green */
+      border: 1px solid #aaccaa;
+      color: #004400;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1 style="text-align:center;">Tarot</h1>
+  <div id="questions"></div>
+
+<script>
+  const cardImages = {
+    ...Object.fromEntries(Array.from({ length: 42 }, (_, i) => {
+      const key = `n${String(i + 1).padStart(3, '0')}`;
+      return [key, `https://raw.githubusercontent.com/chitchaya-lin/tarot-cards/main/${key}.jpg`];
+    })),
+    ...Object.fromEntries(Array.from({ length: 23 }, (_, i) => {
+      const key = `p${String(i + 1).padStart(3, '0')}`;
+      return [key, `https://raw.githubusercontent.com/chitchaya-lin/tarot-cards/main/${key}.jpg`];
+    }))
+  };
+
+  const deck = Object.keys(cardImages).filter(k => /^n/.test(k));
+  const positiveDeck = Object.keys(cardImages).filter(k => /^p/.test(k));
+
+  function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+  }
+
+  function shuffleNegativeDeck(qNum) {
+    const deckShuffled = shuffle([...deck]);
+    const container = document.getElementById("negDeck" + qNum);
+    container.innerHTML = "";
+    deckShuffled.forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card-back";
+      div.style.width = "80px";
+      div.style.height = "120px";
+      div.style.backgroundColor = "#555";
+      div.style.border = "2px solid #999";
+      div.style.borderRadius = "6px";
+      div.style.cursor = "pointer";
+      div.onclick = () => showSelectedCard(card, "negSelected" + qNum);
+      container.appendChild(div);
+    });
+  }
+
+  function shufflePositiveDeck(qNum) {
+    const deckShuffled = shuffle([...positiveDeck]);
+    const container = document.getElementById("posDeck" + qNum);
+    container.innerHTML = "";
+    deckShuffled.forEach(card => {
+      const div = document.createElement("div");
+      div.className = "card-back";
+      div.style.width = "80px";
+      div.style.height = "120px";
+      div.style.backgroundColor = "#555";
+      div.style.border = "2px solid #999";
+      div.style.borderRadius = "6px";
+      div.style.cursor = "pointer";
+      div.onclick = () => showSelectedCard(card, "posSelected" + qNum);
+      container.appendChild(div);
+    });
+  }
+
+  function showSelectedCard(card, containerId) {
+    const container = document.getElementById(containerId);
+    const img = document.createElement("img");
+    img.src = cardImages[card];
+    img.alt = card;
+
+    // Apply border color based on container type
+    if (containerId.startsWith("negSelected")) {
+      img.className = "neg-card";
+    } else if (containerId.startsWith("posSelected")) {
+      img.className = "pos-card";
+    }
+
+    container.appendChild(img);
+  }
+
+  function resetCards(containerId) {
+    const container = document.getElementById(containerId);
+    if (container) container.innerHTML = "";
+  }
+
+  const qDiv = document.getElementById("questions");
+  for (let i = 1; i <= 10; i++) {
+    const box = document.createElement("div");
+    box.className = "question-box";
+    box.innerHTML = `
+  <div style="display:flex; flex-direction:column; align-items:center;">
+    <b>Question ${i}:</b>
+    <div style="height: var(--ui-gap);"></div>
+    <input type="text" id="q${i}" size="60" placeholder="Type your question here">
+
+    <!-- Negative Section -->
+    <div class="section">
+      <div class="button-row">
+        <button class="shuttle negative" onclick="shuffleNegativeDeck(${i})">
+          Shuffle Negative Cards
+        </button>
+        <button class="reset-btn" onclick="resetCards('negSelected${i}')">
+          Clear Revealed Cards
+        </button>
+      </div>
+      <div class="full-deck" id="negDeck${i}"></div>
+      <div id="negSelected${i}" class="selected-cards"></div>
+    </div>
+
+    <!-- Positive Section -->
+    <div class="section">
+      <div class="button-row">
+        <button class="shuttle positive" onclick="shufflePositiveDeck(${i})">
+          Shuffle Positive Cards
+        </button>
+        <button class="reset-btn" onclick="resetCards('posSelected${i}')">
+          Clear Revealed Cards
+        </button>
+      </div>
+      <div class="full-deck" id="posDeck${i}"></div>
+      <div id="posSelected${i}" class="selected-cards"></div>
+    </div>
+  </div>
+`;
+    qDiv.appendChild(box);
+  }
+</script>
+</body>
+</html>
